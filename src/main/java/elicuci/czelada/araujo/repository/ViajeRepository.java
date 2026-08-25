@@ -11,31 +11,53 @@ import java.time.LocalDateTime;
 import java.util.List;
 
 @Repository
-public interface ViajeRepository extends JpaRepository<Viaje,Long> {
+public interface ViajeRepository extends JpaRepository<Viaje, Long> {
 
-    //trae los viajes programados de origen a destino y se ordena por fecha y hora de menor a mayor
-    @Query("SELECT v FROM Viaje v WHERE v.ciudadOrigen.idCiudad = :origenId " +
-            "AND v.ciudadDestino.idCiudad = :destinoId " +
-            "AND v.estado = 'PROGRAMADO' " +
-            "ORDER BY v.fechaHora ASC")
+    // Trae los viajes programados de origen a destino
+    // y los ordena por fecha y hora de menor a mayor
+    @Query("""
+        SELECT v FROM Viaje v
+        WHERE v.ciudadOrigen.idCiudad = :origenId
+        AND v.ciudadDestino.idCiudad = :destinoId
+        AND v.estado = 'PROGRAMADO'
+        ORDER BY v.fechaHora ASC
+    """)
     List<Viaje> findViajesDisponibles(
             @Param("origenId") Long origenId,
-            @Param("destinoId") Long destinoId);
-    //te lista y ordena los viajes programamos para la ventanilla
-    @Query("SELECT v FROM Viaje v WHERE v.estado = 'PROGRAMADO' " +
-            "ORDER BY v.fechaHora ASC")
+            @Param("destinoId") Long destinoId
+    );
+
+    // Lista y ordena los viajes programados para la ventanilla
+    @Query("""
+        SELECT v FROM Viaje v
+        WHERE v.estado = 'PROGRAMADO'
+        ORDER BY v.fechaHora ASC
+    """)
     List<Viaje> findViajesProgramados();
-    // viajes por fecha
-    @Query("SELECT v FROM Viaje v WHERE v.fechaHora BETWEEN :inicio AND :fin " +
-            "ORDER BY v.fechaHora ASC")
+
+    // Viajes por rango de fecha
+    @Query("""
+        SELECT v FROM Viaje v
+        WHERE v.fechaHora BETWEEN :inicio AND :fin
+        ORDER BY v.fechaHora ASC
+    """)
     List<Viaje> findByFechaBetween(
             @Param("inicio") LocalDateTime inicio,
-            @Param("fin") LocalDateTime fin);
+            @Param("fin") LocalDateTime fin
+    );
 
     // Viajes por estado
     List<Viaje> findByEstado(EstadoViaje estado);
 
-    // Para reportes de caja  de los viajes que se dan al dia
-    @Query("SELECT v FROM Viaje v WHERE DATE(v.fechaHora) = CURRENT_DATE")
-    List<Viaje> findViajesHoy();
+    // Viajes del día para reportes de caja
+    @Query("""
+        SELECT v FROM Viaje v
+        WHERE v.fechaHora >= :inicio
+        AND v.fechaHora < :fin
+        ORDER BY v.fechaHora ASC
+    """)
+    List<Viaje> findViajesHoy(
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
+    );
 }
