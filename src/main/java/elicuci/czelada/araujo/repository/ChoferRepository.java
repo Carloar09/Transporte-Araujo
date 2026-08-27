@@ -29,7 +29,11 @@ public interface ChoferRepository extends JpaRepository<Chofer, Long> {
  long countByEstado(EstadoVehiculo estado);
 
  // Verifica choferes sin vehículos asignados
- @Query("SELECT c FROM Chofer c WHERE c.vehiculo IS NULL AND c.estado = 'ACTIVO'")
+ //@Query("SELECT c FROM Chofer c WHERE c.vehiculo IS NULL AND c.estado = 'ACTIVO'")
+ //List<Chofer> findChoferesDisponibles();
+
+ // Cambia 'ACTIVO' por 'OPERATIVO'
+ @Query("SELECT c FROM Chofer c WHERE c.vehiculo IS NULL AND c.estado = elicuci.czelada.araujo.entity.enums.EstadoVehiculo.OPERATIVO")
  List<Chofer> findChoferesDisponibles();
 
  // Busca el chofer asignado a un vehículo

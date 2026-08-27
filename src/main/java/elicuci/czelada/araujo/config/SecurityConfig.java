@@ -31,6 +31,10 @@ public class SecurityConfig {
                         // Rutas públicas
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/consulta/**").permitAll()
+                        .requestMatchers("/api/vehiculos/**").permitAll() // <-- Esta linea la agregué para que me
+                        // deje hacer pruebas con vehiculo en el postman xd
+                        .requestMatchers("/api/viajes/**").permitAll() //<-- Esta linea la agregué para que me
+                        // deje hacer pruebas con viajes en el postman xd
                         // Todo lo demás requiere token
                         .anyRequest().authenticated()
                 )

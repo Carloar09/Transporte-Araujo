@@ -4,5 +4,6 @@ public enum EstadoVehiculo {
     OPERATIVO,
     MANTENIMIENTO,
     TALLER,
-    DESCANSO
+    DESCANSO,
+    ACTIVO
 }
