@@ -35,6 +35,8 @@ public class SecurityConfig {
                         // deje hacer pruebas con vehiculo en el postman xd
                         .requestMatchers("/api/viajes/**").permitAll() //<-- Esta linea la agregué para que me
                         // deje hacer pruebas con viajes en el postman xd
+                        // Permitir todas las rutas /api/v1/ ESTA WEA LO BORRAMOS CUANDO LO DESPLEGUEMOS XD
+                        .requestMatchers("/api/v1/**").permitAll()
                         // Todo lo demás requiere token
                         .anyRequest().authenticated()
                 )
