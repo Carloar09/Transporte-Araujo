@@ -1,29 +1,27 @@
 package elicuci.czelada.araujo.dto;
 
-import elicuci.czelada.araujo.entity.enums.EstadoChofer;
-import jakarta.validation.constraints.NotBlank;
-import jakarta.validation.constraints.NotNull;
-import jakarta.validation.constraints.Size;
+import elicuci.czelada.araujo.entity.enums.EstadoVehiculo;
+import jakarta.validation.constraints.*;
 import lombok.Data;
 
 @Data
 public class ChoferRequestDTO {
 
-    @NotBlank
+    @NotBlank(message = "El nombre es obligatorio")
     private String nombreCompleto;
 
-    @NotBlank
-    @Size(min = 8, max = 8)
+    @NotBlank(message = "El DNI es obligatorio")
+    @Size(min = 8, max = 8, message = "El DNI debe tener 8 dígitos")
     private String dni;
 
-    @NotBlank
+    @NotBlank(message = "La licencia es obligatoria")
     private String licencia;
 
     private String telefono;
 
-    @NotNull
-    private EstadoChofer estado;
+    @NotNull(message = "El estado es obligatorio")
+    private EstadoVehiculo estado;
 
-    // para asignar su vehiculo
+    // Vehículo a asignar (opcional)
     private Long vehiculoId;
 }

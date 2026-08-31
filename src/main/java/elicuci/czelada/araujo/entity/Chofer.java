@@ -1,7 +1,9 @@
 package elicuci.czelada.araujo.entity;
 
+import elicuci.czelada.araujo.entity.enums.EstadoChofer;
 import elicuci.czelada.araujo.entity.enums.EstadoVehiculo;
 import jakarta.persistence.*;
+import jakarta.validation.constraints.NotNull;
 import lombok.AllArgsConstructor;
 import lombok.Data;
 import lombok.NoArgsConstructor;
@@ -37,4 +39,5 @@ public class Chofer {
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vehiculo_id", nullable = true)
     private Vehiculo vehiculo;
+
 }

@@ -13,6 +13,8 @@ import java.util.Optional;
 @Repository
 public interface ChoferRepository extends JpaRepository<Chofer, Long> {
 
+ boolean existsByLicencia(String licencia);
+
  // Busca un chofer por su DNI
  Optional<Chofer> findByDni(String dni);
 

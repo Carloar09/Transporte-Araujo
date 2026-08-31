@@ -68,7 +68,7 @@ public class Encomienda {
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "registrado_por_id", nullable = false)
-    private Usuario resgistradoPor;
+    private Usuario registradoPor;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "viaje_id", nullable = true)
