@@ -1,5 +1,6 @@
 package elicuci.czelada.araujo.controller;
 
+import elicuci.czelada.araujo.dto.AsientoDTO;
 import elicuci.czelada.araujo.dto.ViajeRequestDTO;
 import elicuci.czelada.araujo.dto.ViajeResponseDTO;
 import elicuci.czelada.araujo.entity.enums.EstadoViaje;
@@ -46,5 +47,9 @@ public class ViajeController {
             @PathVariable Long id,
             @RequestParam EstadoViaje estado) {
         return ResponseEntity.ok(viajeService.cambiarEstado(id, estado));
+    }
+    @GetMapping("/{id}/croquis")
+    public ResponseEntity<List<AsientoDTO>> getCroquis(@PathVariable Long id) {
+        return ResponseEntity.ok(viajeService.getCroquis(id));
     }
 }

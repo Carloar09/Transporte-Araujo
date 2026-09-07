@@ -5,14 +5,16 @@ import jakarta.validation.constraints.NotNull;
 import jakarta.validation.constraints.Size;
 import lombok.Data;
 
+import java.math.BigDecimal;
+
 @Data
 public class VenderPasajeRequestDTO {
 
     @NotNull
-    private Long idViaje;
+    private Long viajeId;
 
-    @NotNull
-    private Long idAsiento;
+    @NotNull(message = "El número de asiento es obligatorio")
+    private Integer numeroAsiento;
 
     @NotBlank
     private String nombrePasajero;
@@ -20,4 +22,6 @@ public class VenderPasajeRequestDTO {
     @NotBlank
     @Size(min = 8, max = 8)
     private String dniPasajero;
+    @NotNull(message = "El precio es obligatorio")
+    private BigDecimal precio;
 }

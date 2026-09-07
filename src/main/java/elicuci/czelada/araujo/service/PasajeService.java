@@ -2,6 +2,7 @@ package elicuci.czelada.araujo.service;
 
 import elicuci.czelada.araujo.dto.PasajeRequestDTO;
 import elicuci.czelada.araujo.dto.PasajeResponseDTO;
+import elicuci.czelada.araujo.dto.VenderPasajeRequestDTO;
 import elicuci.czelada.araujo.entity.Asiento;
 import elicuci.czelada.araujo.entity.Pasaje;
 import elicuci.czelada.araujo.entity.Usuario;
@@ -18,6 +19,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
+
+import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
 
@@ -38,42 +41,56 @@ public class PasajeService {
     private UsuarioRepository usuarioRepository;
 
     @Transactional
-    public PasajeResponseDTO venderPasaje(PasajeRequestDTO dto) {
-        log.info("Procesando venta de pasaje para asiento N° {} en viaje ID: {}", dto.getNumeroAsiento(), dto.getViajeId());
+    public PasajeResponseDTO venderPasaje(VenderPasajeRequestDTO request, String dniVendedor) {
 
-        Viaje viaje = viajeRepository.findById(dto.getViajeId())
-                .orElseThrow(() -> new RuntimeException("Viaje no encontrado con ID: " + dto.getViajeId()));
+        log.info("Procesando venta de pasaje para asiento N° {} en viaje ID: {}",
+                request.getNumeroAsiento(), request.getViajeId());
 
-        Asiento asiento = asientoRepository.findByViajeIdAndNumero(dto.getViajeId(), dto.getNumeroAsiento())
-                .orElseThrow(() -> new RuntimeException("El asiento N° " + dto.getNumeroAsiento() + " no existe en este viaje"));
+        // 1. Buscar viaje
+        Viaje viaje = viajeRepository.findById(request.getViajeId())
+                .orElseThrow(() -> new RuntimeException(
+                        "Viaje no encontrado con ID: " + request.getViajeId()));
 
+        // 2. Buscar asiento por número dentro del viaje
+        Asiento asiento = asientoRepository
+                .findByViajeIdAndNumero(request.getViajeId(), request.getNumeroAsiento())
+                .orElseThrow(() -> new RuntimeException(
+                        "El asiento N° " + request.getNumeroAsiento() + " no existe en este viaje"));
+
+        // 3. Validar que no sea el asiento del chofer
         if (asiento.isEsChofer()) {
-            throw new RuntimeException("El asiento seleccionado corresponde al chofer y no se puede vender");
+            throw new RuntimeException(
+                    "El asiento seleccionado corresponde al chofer y no se puede vender");
         }
 
+        // 4. Validar que esté libre
         if (asiento.getEstado() != EstadoAsiento.LIBRE) {
-            throw new RuntimeException("El asiento N° " + dto.getNumeroAsiento() + " ya se encuentra " + asiento.getEstado());
+            throw new RuntimeException(
+                    "El asiento N° " + request.getNumeroAsiento()
+                            + " ya se encuentra " + asiento.getEstado());
         }
 
-        Usuario vendedor = usuarioRepository.findById(dto.getUsuarioId())
-                .orElseThrow(() -> new RuntimeException("Usuario vendedor no encontrado"));
+        // 5. Buscar vendedor por DNI del JWT
+        Usuario vendedor = usuarioRepository.findByDni(dniVendedor)
+                .orElseThrow(() -> new RuntimeException("Vendedor no encontrado"));
 
-        // Marcar asiento como OCUPADO
+        // 6. Marcar asiento como OCUPADO
         asiento.setEstado(EstadoAsiento.OCUPADO);
         asientoRepository.save(asiento);
 
-        // Registrar Pasaje
+        // 7. Crear el pasaje
         Pasaje pasaje = new Pasaje();
         pasaje.setViaje(viaje);
         pasaje.setAsiento(asiento);
-        pasaje.setNombrePasajero(dto.getNombrePasajero());
-        pasaje.setDniPasajero(dto.getDniPasajero());
-        pasaje.setPrecio(dto.getPrecio());
-        pasaje.setFechaVenta(LocalDate.now());
+        pasaje.setNombrePasajero(request.getNombrePasajero());
+        pasaje.setDniPasajero(request.getDniPasajero());
+        pasaje.setPrecio(request.getPrecio());
+        pasaje.setFechaVenta(LocalDateTime.now()); // ← LocalDateTime no LocalDate
         pasaje.setVendidoPor(vendedor);
         pasaje.setEstado(EstadoPasaje.VENDIDO);
 
         Pasaje guardado = pasajeRepository.save(pasaje);
+
         return mapToResponseDTO(guardado);
     }
 

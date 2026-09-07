@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 
 @Entity
 @Table(name="pasajes")
@@ -37,7 +38,7 @@ public class Pasaje {
     private BigDecimal precio;
 
     @Column(name = "fecha_venta", nullable = false)
-    private LocalDate fechaVenta;
+    private LocalDateTime fechaVenta;
 
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "vendido_por_id", nullable = false)

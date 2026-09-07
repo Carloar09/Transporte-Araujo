@@ -2,25 +2,34 @@ package elicuci.czelada.araujo.controller;
 
 import elicuci.czelada.araujo.dto.PasajeRequestDTO;
 import elicuci.czelada.araujo.dto.PasajeResponseDTO;
+import elicuci.czelada.araujo.dto.VenderPasajeRequestDTO;
 import elicuci.czelada.araujo.service.PasajeService;
 import jakarta.validation.Valid;
+import lombok.RequiredArgsConstructor;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
 
 import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/pasajes")
+@RequiredArgsConstructor
 public class PasajeController {
 
     @Autowired
     private PasajeService pasajeService;
 
-    @PostMapping
-    public ResponseEntity<PasajeResponseDTO> venderPasaje(@Valid @RequestBody PasajeRequestDTO request) {
-        return ResponseEntity.status(HttpStatus.CREATED).body(pasajeService.venderPasaje(request));
+    @PostMapping("/vender")
+    public ResponseEntity<PasajeResponseDTO> vender(
+            @Valid @RequestBody VenderPasajeRequestDTO request,
+            Authentication authentication) {
+        // El DNI del cajero viene del JWT
+        String dniVendedor = authentication.getName();
+        return ResponseEntity.status(HttpStatus.CREATED)
+                .body(pasajeService.venderPasaje(request,dniVendedor));
     }
 
     @GetMapping("/manifiesto/{viajeId}")

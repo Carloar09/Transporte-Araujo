@@ -1,5 +1,6 @@
 package elicuci.czelada.araujo.service;
 
+import elicuci.czelada.araujo.dto.AsientoDTO;
 import elicuci.czelada.araujo.dto.ViajeRequestDTO;
 import elicuci.czelada.araujo.dto.ViajeResponseDTO;
 import elicuci.czelada.araujo.entity.Asiento;
@@ -9,10 +10,8 @@ import elicuci.czelada.araujo.entity.Vehiculo;
 import elicuci.czelada.araujo.entity.Viaje;
 import elicuci.czelada.araujo.entity.enums.EstadoAsiento;
 import elicuci.czelada.araujo.entity.enums.EstadoViaje;
-import elicuci.czelada.araujo.repository.ChoferRepository;
-import elicuci.czelada.araujo.repository.CiudadRepository;
-import elicuci.czelada.araujo.repository.VehiculoRepository;
-import elicuci.czelada.araujo.repository.ViajeRepository;
+import elicuci.czelada.araujo.repository.*;
+import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
@@ -24,7 +23,9 @@ import java.util.stream.Collectors;
 
 @Slf4j
 @Service
+@RequiredArgsConstructor
 public class ViajeService {
+
 
     @Autowired
     private ViajeRepository viajeRepository;
@@ -37,6 +38,7 @@ public class ViajeService {
 
     @Autowired
     private ChoferRepository choferRepository;
+    private final AsientoRepository asientoRepository;
 
     @Transactional(readOnly = true)
     public List<ViajeResponseDTO> listarProgramados() {
@@ -85,21 +87,33 @@ public class ViajeService {
         viaje.setChofer(chofer);
         viaje.setEstado(EstadoViaje.PROGRAMADO);
 
+        Viaje viajeGuardado = viajeRepository.save(viaje);
+
         // Generación automática de asientos según capacidad del vehículo
         List<Asiento> asientos = new ArrayList<>();
+        // Asiento del chofer (número 0 especial)
+        Asiento asientoChofer = new Asiento();
+        asientoChofer.setViaje(viajeGuardado);
+        asientoChofer.setNumero(0);
+        asientoChofer.setEsChofer(true);
+        asientoChofer.setEstado(elicuci.czelada.araujo.entity.enums.EstadoAsiento.OCUPADO);
+        asientos.add(asientoChofer);
+
         for (int i = 1; i <= vehiculo.getCapacidad(); i++) {
             Asiento asiento = new Asiento();
-            asiento.setViaje(viaje);
+            asiento.setViaje(viajeGuardado);
             asiento.setNumero(i);
-            asiento.setEstado(EstadoAsiento.LIBRE);
             asiento.setEsChofer(false);
+            asiento.setEstado(elicuci.czelada.araujo.entity.enums.EstadoAsiento.LIBRE);
             asientos.add(asiento);
         }
-        viaje.setAsientos(asientos);
+        asientoRepository.saveAll(asientos);
+        return mapToResponseDTO(viajeGuardado);
+        //viaje.setAsientos(asientos);
 
-        Viaje guardado = viajeRepository.save(viaje);
-        log.info("Viaje creado exitosamente con ID: {} y {} asientos generados", guardado.getIdViaje(), asientos.size());
-        return mapToResponseDTO(guardado);
+        //Viaje guardado = viajeRepository.save(viaje);
+        //log.info("Viaje creado exitosamente con ID: {} y {} asientos generados", guardado.getIdViaje(), asientos.size());
+        //return mapToResponseDTO(guardado);
     }
 
     @Transactional
@@ -110,6 +124,21 @@ public class ViajeService {
         viaje.setEstado(nuevoEstado);
         Viaje actualizado = viajeRepository.save(viaje);
         return mapToResponseDTO(actualizado);
+    }
+    // para obetenr un croquis de asientos e un viaje
+    public List<AsientoDTO> getCroquis(Long viajeId) {
+        viajeRepository.findById(viajeId)
+                .orElseThrow(() -> new RuntimeException("Viaje no encontrado"));
+
+        return asientoRepository.findByViajeId(viajeId)
+                .stream()
+                .map(a -> AsientoDTO.builder()
+                        .idAsiento(a.getIdAsieto())
+                        .numero(a.getNumero())
+                        .estado(a.getEstado().name())
+                        .esChofer(a.isEsChofer())
+                        .build())
+                .collect(Collectors.toList());
     }
 
     private ViajeResponseDTO mapToResponseDTO(Viaje viaje) {
