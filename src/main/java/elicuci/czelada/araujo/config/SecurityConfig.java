@@ -5,6 +5,7 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.config.Customizer;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
@@ -24,10 +25,12 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain filterChain(HttpSecurity http) throws Exception {
         http
+                .cors(Customizer.withDefaults())
                 .csrf(csrf -> csrf.disable())
                 .sessionManagement(session -> session
                         .sessionCreationPolicy(SessionCreationPolicy.STATELESS))
                 .authorizeHttpRequests(auth -> auth
+                        .requestMatchers("/error").permitAll() // <-- Agrega esta línea para ver errores reales en lugar de 404
                         // Rutas públicas
                         .requestMatchers("/api/v1/auth/**").permitAll()
                         .requestMatchers("/api/v1/consulta/**").permitAll()
@@ -37,6 +40,7 @@ public class SecurityConfig {
                         // deje hacer pruebas con viajes en el postman xd
                         // Permitir todas las rutas /api/v1/ ESTA WEA LO BORRAMOS CUANDO LO DESPLEGUEMOS XD
                         .requestMatchers("/api/v1/**").permitAll()
+                        .requestMatchers("/api/v1/dashboard/**").permitAll() // <-- Permite acceso libre a este endpoint
                         // Todo lo demás requiere token
                         .anyRequest().authenticated()
                 )
