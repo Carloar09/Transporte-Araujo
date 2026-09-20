@@ -1,8 +1,6 @@
 package elicuci.czelada.araujo.controller;
 
-import elicuci.czelada.araujo.dto.AsientoDTO;
-import elicuci.czelada.araujo.dto.ViajeRequestDTO;
-import elicuci.czelada.araujo.dto.ViajeResponseDTO;
+import elicuci.czelada.araujo.dto.*;
 import elicuci.czelada.araujo.entity.enums.EstadoViaje;
 import elicuci.czelada.araujo.service.ViajeService;
 import jakarta.validation.Valid;
@@ -15,6 +13,8 @@ import java.util.List;
 
 @RestController
 @RequestMapping("/api/v1/viajes")
+//@CrossOrigin(originPatterns = "*") // Usar originPatterns soluciona la compatibilidad con credentials
+@CrossOrigin(origins = "http://localhost:4200")
 public class ViajeController {
 
     @Autowired
@@ -51,5 +51,17 @@ public class ViajeController {
     @GetMapping("/{id}/croquis")
     public ResponseEntity<List<AsientoDTO>> getCroquis(@PathVariable Long id) {
         return ResponseEntity.ok(viajeService.getCroquis(id));
+    }
+
+    // Endpoint faltante para consultar DNI a la RENIEC
+    @GetMapping("/consulta/dni/{dni}")
+    public ResponseEntity<PeruApiDniDTO> consultarDni(@PathVariable String dni) {
+        return ResponseEntity.ok(viajeService.consultarDni(dni));
+    }
+
+    // Endpoint faltante para consultar RUC a la RENIEC
+    @GetMapping("/consulta/ruc/{ruc}")
+    public ResponseEntity<PeruApiRucDTO> consultarRuc(@PathVariable String ruc) {
+        return ResponseEntity.ok(viajeService.consultarRuc(ruc));
     }
 }

@@ -22,15 +22,24 @@ public class Asiento {
     @JoinColumn(name="viaje_id", nullable=false)
     private Viaje viaje;
 
-    //capacidad del vehiculo
+    // capacidad del vehiculo
     @Column(nullable = false)
     private Integer numero;
 
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
-    private EstadoAsiento estado=EstadoAsiento.LIBRE;
+    private EstadoAsiento estado = EstadoAsiento.LIBRE;
 
-    //ponemos en true para poder ver el asiento del chofer
+    // ponemos en true para poder ver el asiento del chofer
     @Column(name = "es_chofer", nullable = false)
-    private boolean esChofer=false;
+    private boolean esChofer = false;
+
+    // 👈 NUEVOS CAMPOS: Para almacenar los datos del pasaje vendido
+    @Column(name = "dni_pasajero")
+    private String dniPasajero;
+
+    @Column(name = "nombre_pasajero")
+    private String nombrePasajero;
+
+    private Double precio;
 }

@@ -18,8 +18,6 @@ import org.springframework.beans.factory.annotation.Autowired;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
-import java.time.LocalDate;
-
 import java.time.LocalDateTime;
 import java.util.List;
 import java.util.stream.Collectors;
@@ -43,7 +41,7 @@ public class PasajeService {
     @Transactional
     public PasajeResponseDTO venderPasaje(VenderPasajeRequestDTO request, String dniVendedor) {
 
-        log.info("Procesando venta de pasaje para asiento N° {} en viaje ID: {}",
+        log.info("Procesando venta/modificación de pasaje para asiento N° {} en viaje ID: {}",
                 request.getNumeroAsiento(), request.getViajeId());
 
         // 1. Buscar viaje
@@ -63,29 +61,46 @@ public class PasajeService {
                     "El asiento seleccionado corresponde al chofer y no se puede vender");
         }
 
-        // 4. Validar que esté libre
-        if (asiento.getEstado() != EstadoAsiento.LIBRE) {
-            throw new RuntimeException(
-                    "El asiento N° " + request.getNumeroAsiento()
-                            + " ya se encuentra " + asiento.getEstado());
-        }
-
-        // 5. Buscar vendedor por DNI del JWT
+        // 4. Buscar vendedor por DNI del JWT
         Usuario vendedor = usuarioRepository.findByDni(dniVendedor)
                 .orElseThrow(() -> new RuntimeException("Vendedor no encontrado"));
 
-        // 6. Marcar asiento como OCUPADO
-        asiento.setEstado(EstadoAsiento.OCUPADO);
+        Pasaje pasaje;
+
+        // 5. Determinar si es una NUEVA VENTA o una EDICIÓN
+        if (asiento.getEstado() == EstadoAsiento.OCUPADO) {
+            // Si ya está OCUPADO, buscamos el pasaje existente para actualizarlo
+            pasaje = pasajeRepository.findByViajeId(request.getViajeId()).stream()
+                    .filter(p -> p.getAsiento() != null &&
+                            p.getAsiento().getIdAsieto().equals(asiento.getIdAsieto()) &&
+                            p.getEstado() == EstadoPasaje.VENDIDO)
+                    .findFirst()
+                    .orElseGet(() -> {
+                        Pasaje p = new Pasaje();
+                        p.setViaje(viaje);
+                        p.setAsiento(asiento);
+                        p.setFechaVenta(LocalDateTime.now());
+                        return p;
+                    });
+        } else {
+            // Si está LIBRE, creamos un nuevo pasaje y marcamos el asiento como ocupado
+            asiento.setEstado(EstadoAsiento.OCUPADO);
+            pasaje = new Pasaje();
+            pasaje.setViaje(viaje);
+            pasaje.setAsiento(asiento);
+            pasaje.setFechaVenta(LocalDateTime.now());
+        }
+
+        // 6. Actualizar información en el Asiento
+        asiento.setDniPasajero(request.getDniPasajero());
+        asiento.setNombrePasajero(request.getNombrePasajero());
+        asiento.setPrecio(request.getPrecio() != null ? request.getPrecio().doubleValue() : null);
         asientoRepository.save(asiento);
 
-        // 7. Crear el pasaje
-        Pasaje pasaje = new Pasaje();
-        pasaje.setViaje(viaje);
-        pasaje.setAsiento(asiento);
+        // 7. Actualizar información en el Pasaje
         pasaje.setNombrePasajero(request.getNombrePasajero());
         pasaje.setDniPasajero(request.getDniPasajero());
         pasaje.setPrecio(request.getPrecio());
-        pasaje.setFechaVenta(LocalDateTime.now()); // ← LocalDateTime no LocalDate
         pasaje.setVendidoPor(vendedor);
         pasaje.setEstado(EstadoPasaje.VENDIDO);
 
@@ -114,10 +129,13 @@ public class PasajeService {
 
         pasaje.setEstado(EstadoPasaje.ANULADO);
 
-        // Liberar el asiento nuevamente
+        // Liberar el asiento y limpiar datos del pasajero
         Asiento asiento = pasaje.getAsiento();
         if (asiento != null) {
             asiento.setEstado(EstadoAsiento.LIBRE);
+            asiento.setDniPasajero(null);
+            asiento.setNombrePasajero(null);
+            asiento.setPrecio(null);
             asientoRepository.save(asiento);
         }
 

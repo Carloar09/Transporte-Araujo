@@ -1,6 +1,8 @@
 package elicuci.czelada.araujo.security;
 
 import elicuci.czelada.araujo.repository.UsuarioRepository;
+import io.jsonwebtoken.ExpiredJwtException;
+import io.jsonwebtoken.JwtException;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -11,7 +13,6 @@ import org.springframework.security.core.authority.SimpleGrantedAuthority;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.web.authentication.WebAuthenticationDetailsSource;
 import org.springframework.stereotype.Component;
-import org.springframework.web.context.annotation.RequestScope;
 import org.springframework.web.filter.OncePerRequestFilter;
 
 import java.io.IOException;
@@ -19,7 +20,7 @@ import java.util.List;
 
 @Component
 @RequiredArgsConstructor
-public class JwtFilter  extends OncePerRequestFilter {
+public class JwtFilter extends OncePerRequestFilter {
 
     private final JwtService jwtService;
     private final UsuarioRepository usuarioRepository;
@@ -38,28 +39,39 @@ public class JwtFilter  extends OncePerRequestFilter {
         }
 
         String token = authHeader.substring(7);
-        String dni = jwtService.extraerDni(token);
 
-        if (dni != null && SecurityContextHolder.getContext().getAuthentication() == null) {
-            usuarioRepository.findByDni(dni).ifPresent(usuario -> {
-                if (jwtService.esValido(token, dni) && usuario.isActivo()) {
+        try {
+            String dni = jwtService.extraerDni(token);
 
-                    // Incluimos el rol en las autoridades
-                    String rol = jwtService.extraerRol(token);
-                    var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + rol));
+            if (dni != null && SecurityContextHolder.getContext().getAuthentication() == null) {
+                usuarioRepository.findByDni(dni).ifPresent(usuario -> {
+                    if (jwtService.esValido(token, dni) && usuario.isActivo()) {
 
-                    UsernamePasswordAuthenticationToken auth =
-                            new UsernamePasswordAuthenticationToken(
-                                    dni, null, authorities);
+                        String rol = jwtService.extraerRol(token);
+                        var authorities = List.of(new SimpleGrantedAuthority("ROLE_" + rol));
 
-                    auth.setDetails(new WebAuthenticationDetailsSource()
-                            .buildDetails(request));
+                        UsernamePasswordAuthenticationToken auth =
+                                new UsernamePasswordAuthenticationToken(
+                                        dni, null, authorities);
 
-                    SecurityContextHolder.getContext().setAuthentication(auth);
-                }
-            });
+                        auth.setDetails(new WebAuthenticationDetailsSource()
+                                .buildDetails(request));
+
+                        SecurityContextHolder.getContext().setAuthentication(auth);
+                    }
+                });
+            }
+        } catch (ExpiredJwtException e) {
+            // Token expirado: continuar sin autenticar (Spring Security devolverá 401)
+            logger.warn("JWT expirado para la petición: " + request.getRequestURI());
+            SecurityContextHolder.clearContext();
+        } catch (JwtException e) {
+            // Token malformado o con firma inválida
+            logger.warn("JWT inválido: " + e.getMessage());
+            SecurityContextHolder.clearContext();
         }
 
         filterChain.doFilter(request, response);
     }
 }
+
