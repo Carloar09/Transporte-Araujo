@@ -18,4 +18,5 @@ public class VehiculoResponseDTO {
     private String estado;
     private LocalDate ultimaRevision;
     private String choferAsignado;
+    private Long idChofer;
 }

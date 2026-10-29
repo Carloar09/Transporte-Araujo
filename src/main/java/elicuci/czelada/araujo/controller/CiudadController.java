@@ -18,7 +18,14 @@ public class CiudadController {
 
     @GetMapping
     public ResponseEntity<List<Ciudad>> listar() {
-        return ResponseEntity.ok(ciudadRepository.findByActivaTrue());
+        List<Ciudad> todas = ciudadRepository.findByActivaTrue();
+        java.util.Map<String, Ciudad> unicas = new java.util.LinkedHashMap<>();
+        for (Ciudad c : todas) {
+            if (c.getNombre() != null) {
+                unicas.putIfAbsent(c.getNombre().trim().toLowerCase(), c);
+            }
+        }
+        return ResponseEntity.ok(new java.util.ArrayList<>(unicas.values()));
     }
 
     @PostMapping

@@ -36,4 +36,7 @@ public class EncomiendaRequestDTO {
     @DecimalMin("0.01")
     private BigDecimal precio;
 
+    private String descripcion;
+    private String pagoEstado; // "PAGADO" o "POR_PAGAR"
+    private Long viajeId; // Opcional: combi/viaje asignado
 }

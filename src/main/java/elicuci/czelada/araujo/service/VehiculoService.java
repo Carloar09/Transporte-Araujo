@@ -22,6 +22,9 @@ public class VehiculoService {
     @Autowired
     private VehiculoRepository vehiculoRepository;
 
+    @Autowired
+    private elicuci.czelada.araujo.repository.ChoferRepository choferRepository;
+
     @Transactional(readOnly = true)
     public List<VehiculoResponseDTO> listarTodos() {
         log.info("Consultando listado completo de vehículos");
@@ -49,6 +52,14 @@ public class VehiculoService {
         mapDtoToEntity(dto, vehiculo);
 
         Vehiculo guardado = vehiculoRepository.save(vehiculo);
+
+        if (dto.getChoferId() != null) {
+            choferRepository.findById(dto.getChoferId()).ifPresent(ch -> {
+                ch.setVehiculo(guardado);
+                choferRepository.save(ch);
+            });
+        }
+
         return mapToResponseDTO(guardado);
     }
 
@@ -99,6 +110,7 @@ public class VehiculoService {
     }
 
     private VehiculoResponseDTO mapToResponseDTO(Vehiculo vehiculo) {
+        var choferOpt = choferRepository.findByVehiculoId(vehiculo.getIdVehiculo());
         return VehiculoResponseDTO.builder()
                 .idVehiculo(vehiculo.getIdVehiculo())
                 .placa(vehiculo.getPlaca())
@@ -108,7 +120,8 @@ public class VehiculoService {
                 .capacidad(vehiculo.getCapacidad())
                 .estado(vehiculo.getEstado() != null ? vehiculo.getEstado().name() : null)
                 .ultimaRevision(vehiculo.getUltimaRevision())
-                .choferAsignado("Por asignar")
+                .choferAsignado(choferOpt.map(elicuci.czelada.araujo.entity.Chofer::getNombreCompleto).orElse("Por asignar"))
+                .idChofer(choferOpt.map(elicuci.czelada.araujo.entity.Chofer::getIdChofer).orElse(null))
                 .build();
     }
 }

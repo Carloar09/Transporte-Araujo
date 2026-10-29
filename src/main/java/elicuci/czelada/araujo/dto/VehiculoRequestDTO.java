@@ -31,4 +31,5 @@ public class VehiculoRequestDTO {
     private EstadoVehiculo estado;
 
     private LocalDate ultimaRevision;
+    private Long choferId;
 }

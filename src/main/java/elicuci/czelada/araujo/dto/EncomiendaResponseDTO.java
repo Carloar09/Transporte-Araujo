@@ -29,6 +29,9 @@ public class EncomiendaResponseDTO {
     private Double peso;
     private BigDecimal precio;
     private String estado;
+    private String pagoEstado;
+    private Long viajeId;
+    private String viajeInfo;
     private String fechaRegistro;
     private String registradoPor;
     // lista para el historial de seguimiento

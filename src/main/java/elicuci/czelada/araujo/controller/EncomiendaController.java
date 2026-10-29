@@ -16,6 +16,7 @@ import java.util.Map;
 
 @RestController
 @RequestMapping("/api/v1/encomiendas")
+@CrossOrigin(origins = "http://localhost:4200")
 @RequiredArgsConstructor
 public class EncomiendaController {
 
@@ -46,8 +47,7 @@ public class EncomiendaController {
     public ResponseEntity<EncomiendaResponseDTO> registrar(
             @Valid @RequestBody EncomiendaRequestDTO request,
             Authentication authentication) {
-        // El DNI del cajero viene del JWT automáticamente
-        String dniRegistrador = authentication.getName();
+        String dniRegistrador = authentication != null ? authentication.getName() : null;
         return ResponseEntity.status(HttpStatus.CREATED)
                 .body(encomiendaService.registrar(request, dniRegistrador));
     }
@@ -59,9 +59,17 @@ public class EncomiendaController {
             @RequestBody Map<String, String> body) {
 
         EstadoEncomienda estado = EstadoEncomienda.valueOf(body.get("estado"));
-        String descripcion = body.get("descripcion"); // ✅ ahora sí existe
+        String descripcion = body.getOrDefault("descripcion", "Actualización de estado");
 
         return ResponseEntity.ok(
                 encomiendaService.actualizarEstado(id, estado, descripcion));
+    }
+
+    // PUT /api/v1/encomiendas/{id}/asignar-viaje/{viajeId}
+    @PutMapping("/{id}/asignar-viaje/{viajeId}")
+    public ResponseEntity<EncomiendaResponseDTO> asignarViaje(
+            @PathVariable Long id,
+            @PathVariable Long viajeId) {
+        return ResponseEntity.ok(encomiendaService.asignarViaje(id, viajeId));
     }
 }

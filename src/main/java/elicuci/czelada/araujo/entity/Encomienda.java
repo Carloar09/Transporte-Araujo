@@ -59,6 +59,9 @@ public class Encomienda {
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;
 
+    @Column(name = "pago_estado", length = 30)
+    private String pagoEstado = "PAGADO";
+
     @Enumerated(EnumType.STRING)
     @Column(nullable = false)
     private EstadoEncomienda estado=EstadoEncomienda.RECEPCIONADO;

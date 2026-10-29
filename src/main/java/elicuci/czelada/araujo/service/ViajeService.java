@@ -16,6 +16,8 @@ import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 import org.springframework.web.client.RestTemplate;
 
+import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -39,15 +41,30 @@ public class ViajeService {
     private String apiUrl;
 
     @Transactional(readOnly = true)
-    public List<ViajeResponseDTO> listarProgramados() {
-        log.info("Listando todos los viajes programados");
+    public List<ViajeResponseDTO> listarProgramados(LocalDate fecha) {
+        LocalDate fechaTarget = (fecha != null) ? fecha : LocalDate.now();
+        log.info("Listando viajes programados para fecha: {}", fechaTarget);
         try {
-            List<Viaje> viajes = viajeRepository.findAll();
+            LocalDateTime inicio = fechaTarget.atStartOfDay();
+            LocalDateTime fin = fechaTarget.plusDays(1).atStartOfDay();
+            List<Viaje> viajes = viajeRepository.findByFechaBetween(inicio, fin);
             return viajes.stream()
                     .map(this::mapToResponseDTO)
                     .collect(Collectors.toList());
         } catch (Exception e) {
             log.error("Error al listar viajes programados: {}", e.getMessage());
+            return Collections.emptyList();
+        }
+    }
+
+    @Transactional(readOnly = true)
+    public List<ViajeResponseDTO> listarTodos() {
+        try {
+            return viajeRepository.findAll().stream()
+                    .map(this::mapToResponseDTO)
+                    .collect(Collectors.toList());
+        } catch (Exception e) {
+            log.error("Error al listar todos los viajes: {}", e.getMessage());
             return Collections.emptyList();
         }
     }
@@ -90,7 +107,7 @@ public class ViajeService {
         Viaje viaje = new Viaje();
         viaje.setCiudadOrigen(origen);
         viaje.setCiudadDestino(destino);
-        viaje.setFechaHora(dto.getFechaHora().toLocalDate());
+        viaje.setFechaHora(dto.getFechaHora());
         viaje.setPrecio(dto.getPrecio());
         viaje.setVehiculo(vehiculo);
         viaje.setChofer(chofer);

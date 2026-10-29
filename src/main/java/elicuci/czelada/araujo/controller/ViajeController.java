@@ -9,6 +9,8 @@ import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.web.bind.annotation.*;
 
+import org.springframework.format.annotation.DateTimeFormat;
+import java.time.LocalDate;
 import java.util.List;
 
 @RestController
@@ -21,8 +23,13 @@ public class ViajeController {
     private ViajeService viajeService;
 
     @GetMapping
-    public ResponseEntity<List<ViajeResponseDTO>> listarProgramados() {
-        return ResponseEntity.ok(viajeService.listarProgramados());
+    public ResponseEntity<List<ViajeResponseDTO>> listarProgramados(
+            @RequestParam(required = false) @DateTimeFormat(iso = DateTimeFormat.ISO.DATE) LocalDate fecha,
+            @RequestParam(required = false, defaultValue = "false") boolean todos) {
+        if (todos) {
+            return ResponseEntity.ok(viajeService.listarTodos());
+        }
+        return ResponseEntity.ok(viajeService.listarProgramados(fecha));
     }
 
     @GetMapping("/disponibles")

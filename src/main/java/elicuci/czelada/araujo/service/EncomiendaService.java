@@ -7,10 +7,12 @@ import elicuci.czelada.araujo.entity.Encomienda;
 import elicuci.czelada.araujo.entity.HistorialEncomienda;
 import elicuci.czelada.araujo.entity.Usuario;
 import elicuci.czelada.araujo.entity.enums.EstadoEncomienda;
+import elicuci.czelada.araujo.entity.Viaje;
 import elicuci.czelada.araujo.repository.CiudadRepository;
 import elicuci.czelada.araujo.repository.EncomiendaRepository;
 import elicuci.czelada.araujo.repository.HistorialEncomiendaRepository;
 import elicuci.czelada.araujo.repository.UsuarioRepository;
+import elicuci.czelada.araujo.repository.ViajeRepository;
 import jakarta.transaction.Transactional;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
@@ -28,6 +30,7 @@ public class EncomiendaService {
     private final CiudadRepository ciudadRepository;
     private final UsuarioRepository usuarioRepository;
     private final HistorialEncomiendaRepository historialRepository;
+    private final ViajeRepository viajeRepository;
 
     // Registrar encomienda nueva
     @Transactional
@@ -39,8 +42,14 @@ public class EncomiendaService {
         Ciudad destino = ciudadRepository.findById(request.getCiudadDestinoId())
                 .orElseThrow(() -> new RuntimeException("Ciudad destino no encontrada"));
 
-        Usuario registrador = usuarioRepository.findByDni(dniRegistrador)
-                .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        Usuario registrador = null;
+        if (dniRegistrador != null && !dniRegistrador.isBlank() && !"anonymousUser".equals(dniRegistrador)) {
+            registrador = usuarioRepository.findByDni(dniRegistrador).orElse(null);
+        }
+        if (registrador == null) {
+            registrador = usuarioRepository.findAll().stream().findFirst()
+                    .orElseThrow(() -> new RuntimeException("Usuario no encontrado"));
+        }
 
         // Generar código único: RX-2026-000001
         String codigo = generarCodigo();
@@ -55,23 +64,59 @@ public class EncomiendaService {
         e.setDestinatarioTelefono(request.getDestinatarioTelefono());
         e.setCiudadOrigen(origen);
         e.setCiudadDestino(destino);
-        e.setPeso(request.getPeso());
+        e.setDescripcion(
+                request.getDescripcion() != null && !request.getDescripcion().isBlank() ? request.getDescripcion()
+                        : "Paquete/Encomienda general");
+        e.setPeso(request.getPeso() != null ? request.getPeso() : 1.0);
         e.setPrecio(request.getPrecio());
+        e.setPagoEstado(request.getPagoEstado() != null && !request.getPagoEstado().isBlank() ? request.getPagoEstado()
+                : "PAGADO");
         e.setEstado(EstadoEncomienda.RECEPCIONADO);
         e.setFechaRegistro(LocalDateTime.now());
         e.setRegistradoPor(registrador);
+
+        if (request.getViajeId() != null) {
+            viajeRepository.findById(request.getViajeId()).ifPresent(v -> {
+                e.setViaje(v);
+                e.setEstado(EstadoEncomienda.EN_TRANSITO);
+            });
+        }
 
         Encomienda guardada = encomiendaRepository.save(e);
 
         // Registrar primer historial automáticamente
         HistorialEncomienda historial = new HistorialEncomienda();
         historial.setEncomienda(guardada);
-        historial.setEstado(EstadoEncomienda.RECEPCIONADO);
-        historial.setDescripcion("Encomienda recepcionada en agencia " + origen.getNombre());
+        historial.setEstado(guardada.getEstado());
+        historial.setDescripcion(
+                "Encomienda recepcionada en agencia " + origen.getNombre() + " (" + e.getPagoEstado() + ")");
         historial.setFecha(LocalDateTime.now());
         historialRepository.save(historial);
 
         return mapToDTO(guardada);
+    }
+
+    // Asignar encomienda a un viaje/combi
+    @Transactional
+    public EncomiendaResponseDTO asignarViaje(Long idEncomienda, Long idViaje) {
+        Encomienda e = encomiendaRepository.findById(idEncomienda)
+                .orElseThrow(() -> new RuntimeException("Encomienda no encontrada"));
+        Viaje v = viajeRepository.findById(idViaje)
+                .orElseThrow(() -> new RuntimeException("Viaje no encontrado"));
+
+        e.setViaje(v);
+        e.setEstado(EstadoEncomienda.EN_TRANSITO);
+        encomiendaRepository.save(e);
+
+        HistorialEncomienda historial = new HistorialEncomienda();
+        historial.setEncomienda(e);
+        historial.setEstado(EstadoEncomienda.EN_TRANSITO);
+        String placa = v.getVehiculo() != null ? v.getVehiculo().getPlaca() : "Combi asignada";
+        historial.setDescripcion("Asignado a combi " + placa + " en ruta a " + e.getCiudadDestino().getNombre());
+        historial.setFecha(LocalDateTime.now());
+        historialRepository.save(historial);
+
+        return mapToDTO(e);
     }
 
     // Seguimiento por código (para el cliente)
@@ -139,6 +184,17 @@ public class EncomiendaService {
                         .build())
                 .collect(Collectors.toList());
 
+        Long viajeId = e.getViaje() != null ? e.getViaje().getIdViaje() : null;
+        String viajeInfo = null;
+        if (e.getViaje() != null) {
+            String placa = (e.getViaje().getVehiculo() != null && e.getViaje().getVehiculo().getPlaca() != null)
+                    ? e.getViaje().getVehiculo().getPlaca()
+                    : "Combi asignada";
+            viajeInfo = "Bus: " + placa;
+        }
+
+        String nomRegistrador = e.getRegistradoPor() != null ? e.getRegistradoPor().getNombreCompleto() : "Ventanilla";
+
         return EncomiendaResponseDTO.builder()
                 .idEncomienda(e.getIdEncomienda())
                 .codigoSeguimiento(e.getCodigoSeguimiento())
@@ -148,14 +204,17 @@ public class EncomiendaService {
                 .destinatarioNombre(e.getDestinatarioNombre())
                 .destinatarioDni(e.getDestinatarioDni())
                 .destinatarioTelefono(e.getDestinatarioTelefono())
-                .ciudadOrigen(e.getCiudadOrigen().getNombre())
-                .ciudadDestino(e.getCiudadDestino().getNombre())
+                .ciudadOrigen(e.getCiudadOrigen() != null ? e.getCiudadOrigen().getNombre() : "Cajamarca")
+                .ciudadDestino(e.getCiudadDestino() != null ? e.getCiudadDestino().getNombre() : "Celendín")
                 .descripcion(e.getDescripcion())
                 .peso(e.getPeso())
                 .precio(e.getPrecio())
-                .estado(e.getEstado().name())
-                .fechaRegistro(e.getFechaRegistro().toString())
-                .registradoPor(e.getRegistradoPor().getNombreCompleto())
+                .pagoEstado(e.getPagoEstado() != null ? e.getPagoEstado() : "PAGADO")
+                .viajeId(viajeId)
+                .viajeInfo(viajeInfo)
+                .estado(e.getEstado() != null ? e.getEstado().name() : "RECEPCIONADO")
+                .fechaRegistro(e.getFechaRegistro() != null ? e.getFechaRegistro().toString() : "")
+                .registradoPor(nomRegistrador)
                 .historial(historialDTO)
                 .build();
     }

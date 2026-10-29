@@ -8,6 +8,7 @@ import lombok.NoArgsConstructor;
 
 import java.math.BigDecimal;
 import java.time.LocalDate;
+import java.time.LocalDateTime;
 import java.util.List;
 
 @Entity
@@ -29,8 +30,9 @@ public class Viaje {
     @JoinColumn(name = "ciudad_destino_id", nullable = false)
     private Ciudad ciudadDestino;
 
+
     @Column(name = "fecha_hora", nullable = false)
-    private LocalDate fechaHora;
+    private LocalDateTime fechaHora;
 
     @Column(nullable = false, precision = 10, scale = 2)
     private BigDecimal precio;

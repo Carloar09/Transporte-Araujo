@@ -46,6 +46,12 @@ public interface ViajeRepository extends JpaRepository<Viaje, Long> {
             @Param("fin") LocalDateTime fin
     );
 
+    @Query("SELECT COUNT(v) FROM Viaje v WHERE v.fechaHora BETWEEN :inicio AND :fin")
+    long countByFechaHoraBetween(
+            @Param("inicio") LocalDateTime inicio,
+            @Param("fin") LocalDateTime fin
+    );
+
     // Viajes por estado
     List<Viaje> findByEstado(EstadoViaje estado);
 
